@@ -1,0 +1,50 @@
+Vagrant.configure("2") do |config|
+  # Base box
+  config.vm.box = "ubuntu/jammy64"
+
+ config.vm.define "master1" do |node|
+  node.vm.hostname = "master1"
+  node.vm.network "public_network", bridge: "Realtek RTL8852AE WiFi 6 802.11ax PCIe Adapter"
+
+  node.vm.network "private_network", ip: "192.168.56.11"
+
+  node.vm.provider "virtualbox" do |vb|
+    vb.name = "master1"
+    vb.cpus = 2
+    vb.memory = 2048
+    vb.gui = true
+  end
+
+  if Vagrant.has_plugin?("vagrant-disksize")
+    node.disksize.size = "20GB"
+  end
+
+  # Common setup script
+  node.vm.provision "K8sDocker", type: "shell", path: "automate.sh"
+
+  # kubeadm init on master
+#  node.vm.provision "KubeInit", type: "shell", path: "ClusterInit.sh" 
+end
+
+
+  # Kubernetes Workers
+  (1..2).each do |i|
+    config.vm.define "worker#{i}" do |node|
+      node.vm.hostname = "worker#{i}"
+      node.vm.network "public_network", bridge: "Realtek RTL8852AE WiFi 6 802.11ax PCIe Adapter"
+
+      node.vm.network "private_network", ip: "192.168.56.2#{i}"
+      node.vm.provider "virtualbox" do |vb|
+        vb.name = "k8sworker#{i}"
+        vb.cpus = 2
+        vb.memory = 3072
+      end
+
+      if Vagrant.has_plugin?("vagrant-disksize")
+        node.disksize.size = "20GB"
+      end
+
+      node.vm.provision "K8sDocker", type: "shell", path: "automate.sh"
+    end
+  end
+end
